@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 func action(stack []*StackElement) (*JsonElement, int) {
 	stackSize := len(stack)
 
@@ -16,40 +14,41 @@ func action(stack []*StackElement) (*JsonElement, int) {
 			if size > stackSize {
 				continue
 			}
-			actual, values := topNOfStack(stack, size)
+			actual := topNOfStack(stack, size)
 			matches := compare(expansion, actual)
 			if matches && size > offsetSize { // TODO: what if they are equal?
 				je = &JsonElement{
-					value:           values,
+					value:           rule.ToJson(stack[len(stack)-size:]...),
 					jsonElementType: lhs,
 				}
 				offsetSize = size
 			}
 		}
 	}
+
+	if offsetSize != 0 {
+
+	}
+
 	return je, offsetSize
 }
 
-func topNOfStack(stack []*StackElement, count int) ([]JsonElementType, []string) {
+func topNOfStack(stack []*StackElement, count int) []ElementType {
 	slice := stack[len(stack)-count:]
-	var elements []JsonElementType
-	var elementValue []string
+	var elements []ElementType
 
 	for _, el := range slice {
 		var value = el.value.tokenType
-		var literal = el.value.value
 		if el.rule != nil {
 			value = el.rule.jsonElementType
-			literal = fmt.Sprintf("%s", el.rule.value)
 		}
 		elements = append(elements, value)
-		elementValue = append(elementValue, fmt.Sprintf("%s", literal))
 	}
 
-	return elements, elementValue
+	return elements
 }
 
-func compare(expansion, actual []JsonElementType) bool {
+func compare(expansion, actual []ElementType) bool {
 	for i := 0; i < len(expansion); i++ {
 		if expansion[i] != actual[i] {
 			return false

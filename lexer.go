@@ -2,38 +2,19 @@ package main
 
 import "strings"
 
-type TokenType = string
-
-const (
-	TTObjectStart    TokenType = "TT_OBJECT_START"
-	TTObjectEnd      TokenType = "TT_OBJECT_END"
-	TTArrayStart     TokenType = "TT_ARRAY_START"
-	TTArrayEnd       TokenType = "TT_ARRAY_END"
-	TTComma          TokenType = "TT_COMMA"
-	TTColon          TokenType = "TT_COLON"
-	TTFractionSymbol TokenType = "TT_FRACTION_SYMBOL"
-	TTBoolean        TokenType = "TT_BOOLEAN"
-	TTExponent       TokenType = "TT_EXPONENT"
-	TTDigits         TokenType = "TT_DIGITS"
-	TTWhitespace     TokenType = "TT_WHITESPACE"
-	TTNull           TokenType = "TT_NULL"
-	TTSign           TokenType = "TT_SIGN"
-	TTString         TokenType = "TT_STRING"
-)
-
 type Token struct {
 	value     any
-	tokenType TokenType
+	tokenType ElementType
 }
 
-var enclosingSymbols = map[uint8]TokenType{
+var enclosingSymbols = map[uint8]ElementType{
 	'{': TTObjectStart,
 	'}': TTObjectEnd,
 	'[': TTArrayStart,
 	']': TTArrayEnd,
 }
 
-var specialSymbols = map[uint8]TokenType{
+var specialSymbols = map[uint8]ElementType{
 	',': TTComma,
 	':': TTColon,
 	'.': TTFractionSymbol,

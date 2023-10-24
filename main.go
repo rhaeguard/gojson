@@ -5,7 +5,8 @@ import (
 )
 
 // const ExampleJson = `{      "value" : 112312312 , "name" : "renault" }`
-const ExampleJson = `{ "value" : [1239, 12345], "name" : "renault" }`
+// const ExampleJson = `{ "value" : [1239, 12345], "name" : "renault" }`
+const ExampleJson = `{ "value" : 12 }`
 
 func main() {
 	tokens := lex(ExampleJson)
