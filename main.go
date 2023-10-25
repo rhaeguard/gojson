@@ -4,9 +4,12 @@ import (
 	"fmt"
 )
 
-// const ExampleJson = `{      "value" : 112312312 , "name" : "renault" }`
-// const ExampleJson = `{ "value" : [1239, 12345], "name" : "renault" }`
-const ExampleJson = `{ "value" : 12 }`
+//const ExampleJson = `{      "value" : 112312312 , "name" : "renault" }`
+
+const ExampleJson = `{ "value" : [1239, 12345], "name" : "renault", "token": true, "hello": null }`
+
+//
+//const ExampleJson = `[{ "value" : 12 }]`
 
 func main() {
 	tokens := lex(ExampleJson)
@@ -66,7 +69,6 @@ func main() {
 			stack = append(stack, &StackElement{
 				rule: jsonElement,
 			})
-			//fmt.Printf("%v\n", jsonElement)
 			fmt.Printf("f: %-v\n", stack)
 			continueReduction = true
 		}

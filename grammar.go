@@ -17,6 +17,7 @@ const (
 	Element  ElementType = "ELEMENT"
 	Elements ElementType = "ELEMENTS"
 	Object   ElementType = "OBJECT"
+	Boolean  ElementType = "BOOLEAN"
 	/* the rest represents literal tokens */
 	TTObjectStart    ElementType = "TT_OBJECT_START"
 	TTObjectEnd      ElementType = "TT_OBJECT_END"
@@ -36,23 +37,13 @@ const (
 type GrammarRule struct {
 	Lhs    string
 	Rhs    [][]ElementType
-	ToJson func(values ...*StackElement) interface{}
+	ToJson func(values ...*StackElement) JsonValue
 }
 
-func grammarRule(lhs string, rhs [][]ElementType) GrammarRule {
-	return GrammarRule{
-		Lhs: lhs,
-		Rhs: rhs,
-		ToJson: func(values ...*StackElement) interface{} {
-			return nil
-		},
-	}
-}
-
-func grammarRule2(
+func grammarRule(
 	lhs string,
 	rhs [][]ElementType,
-	toJson func(values ...*StackElement) interface{},
+	toJson func(values ...*StackElement) JsonValue,
 ) GrammarRule {
 	return GrammarRule{
 		Lhs:    lhs,
@@ -62,103 +53,193 @@ func grammarRule2(
 }
 
 var newGrammar = []GrammarRule{
-	grammarRule2(Value, [][]ElementType{
+	grammarRule(Value, [][]ElementType{
 		{Object},
 		{Array},
 		{Number},
+		{Boolean},
 		{TTString},
-		{TTBoolean},
 		{TTNull},
-	}, func(values ...*StackElement) interface{} {
-		return values[0].Value()
-	}),
-	grammarRule2(Object, [][]ElementType{
-		{TTObjectStart, TTObjectEnd},
-		{TTObjectStart, Members, TTObjectEnd},
-	}, func(values ...*StackElement) interface{} {
-		// TODO: incomplete
-		if len(values) == 3 {
-			return values[1].Value()
-		}
-		return nil
-	}),
-	grammarRule2(Members, [][]ElementType{
-		{Member},
-		{Members, TTComma, Member},
-	}, func(values ...*StackElement) interface{} {
-		if len(values) == 1 {
-			return values[0].Value()
-		} else if len(values) == 3 {
-			mp := values[0].Value().(map[string]interface{})
-			n := values[2].Value().(map[string]interface{})
-			for k, v := range n {
-				mp[k] = v
+	}, func(values ...*StackElement) JsonValue {
+		v := values[0].Value()
+		if str, ok := v.(string); ok {
+			return JsonValue{
+				Value:     str,
+				ValueType: STRING,
 			}
-			return mp
+		} else if v == nil {
+			return JsonValue{
+				Value:     nil,
+				ValueType: NULL,
+			}
+		}
+		return values[0].Value().(JsonValue)
+	}),
+	grammarRule(Boolean, [][]ElementType{
+		{TTBoolean},
+	}, func(values ...*StackElement) JsonValue {
+		b := values[0].Value().(string)
+		if b == "true" {
+			return JsonValue{
+				Value:     true,
+				ValueType: BOOL,
+			}
+		} else if b == "false" {
+			return JsonValue{
+				Value:     false,
+				ValueType: BOOL,
+			}
 		}
 
-		return nil
+		return JsonValue{
+			Value:     nil,
+			ValueType: UNKNOWN,
+		}
 	}),
-	grammarRule2(Member, [][]ElementType{
+	grammarRule(Object, [][]ElementType{
+		{TTObjectStart, TTObjectEnd},
+		{TTObjectStart, Members, TTObjectEnd},
+	}, func(values ...*StackElement) JsonValue {
+		// TODO: incomplete
+		if len(values) == 3 {
+			return values[1].Value().(JsonValue)
+		}
+		return JsonValue{
+			Value: map[string]JsonValue{},
+		}
+	}),
+	grammarRule(Members, [][]ElementType{
+		{Member},
+		{Members, TTComma, Member},
+	}, func(values ...*StackElement) JsonValue {
+		if len(values) == 1 {
+			return values[0].Value().(JsonValue)
+		} else if len(values) == 3 {
+			mp := values[0].Value().(JsonValue)
+			n := values[2].Value().(JsonValue)
+
+			kvs := mp.Value.(map[string]JsonValue)
+			kvn := n.Value.(map[string]JsonValue)
+
+			for k, v := range kvn {
+				kvs[k] = v
+			}
+
+			return JsonValue{
+				ValueType: OBJECT,
+				Value:     kvs,
+			}
+		}
+
+		return JsonValue{
+			ValueType: UNKNOWN,
+		}
+	}),
+	grammarRule(Member, [][]ElementType{
 		{TTString, TTColon, Value},
-	}, func(values ...*StackElement) interface{} {
+	}, func(values ...*StackElement) JsonValue {
 		keyName := values[0]
 		valueObj := values[2]
 
 		key := fmt.Sprintf("%s", keyName.Value())
 
-		return map[string]interface{}{
-			key: valueObj.Value(),
+		return JsonValue{
+			ValueType: OBJECT,
+			Value: map[string]JsonValue{
+				key: valueObj.Value().(JsonValue),
+			},
 		}
 	}),
 	grammarRule(Array, [][]ElementType{
 		{TTArrayStart, TTArrayEnd},
 		{TTArrayStart, Elements, TTArrayEnd},
+	}, func(values ...*StackElement) JsonValue {
+		if len(values) == 2 {
+			return JsonValue{
+				ValueType: ARRAY,
+				Value:     []JsonValue{},
+			}
+		} else if len(values) == 3 {
+			return values[1].Value().(JsonValue)
+		}
+		return JsonValue{
+			ValueType: UNKNOWN,
+		}
 	}),
-	grammarRule2(Elements, [][]ElementType{
+	grammarRule(Elements, [][]ElementType{
 		{Element},
 		{Elements, TTComma, Element},
-	}, func(values ...*StackElement) interface{} {
+	}, func(values ...*StackElement) JsonValue {
 		// TODO: incomplete
-		return values[0].Value()
+		if len(values) == 1 {
+			return JsonValue{
+				ValueType: ARRAY,
+				Value: []JsonValue{
+					values[0].Value().(JsonValue),
+				},
+			}
+		} else if len(values) == 3 {
+			jsonValues := (values[0].Value().(JsonValue)).Value.([]JsonValue)
+			//jsonValues := array.Value.([]JsonValue)
+			e := values[2].Value().(JsonValue)
+			jsonValues = append(jsonValues, e)
+
+			return JsonValue{
+				ValueType: ARRAY,
+				Value:     jsonValues,
+			}
+		}
+		return JsonValue{
+			ValueType: UNKNOWN,
+		}
 	}),
-	grammarRule2(Element, [][]ElementType{
+	grammarRule(Element, [][]ElementType{
 		{Value},
-	}, func(values ...*StackElement) interface{} {
-		return values[0].Value()
+	}, func(values ...*StackElement) JsonValue {
+		return values[0].Value().(JsonValue)
 	}),
-	grammarRule2(Number, [][]ElementType{
+	grammarRule(Number, [][]ElementType{
 		{Integer, TTFractionSymbol, TTDigits, TTExponent, Integer},
 		{Integer, TTFractionSymbol, TTDigits},
 		{Integer, TTExponent, Integer},
 		{Integer},
-	}, func(values ...*StackElement) interface{} {
+	}, func(values ...*StackElement) JsonValue {
 		// TODO: handle all cases
 		if len(values) >= 1 {
 			integer := values[0]
-			return integer.Value()
+			return integer.Value().(JsonValue)
 		}
-		return nil
+		return JsonValue{
+			ValueType: UNKNOWN,
+		}
 	}),
-	grammarRule2(Integer, [][]ElementType{
+	grammarRule(Integer, [][]ElementType{
 		{TTDigits},
 		{TTSign, TTDigits},
-	}, func(values ...*StackElement) interface{} {
-		s := len(values)
-		if s == 1 {
+	}, func(values ...*StackElement) JsonValue {
+		size := len(values)
+		if size == 1 {
 			digits := values[0]
 			// TODO: handle errors properly
 			v, _ := strconv.Atoi(fmt.Sprintf("%s", digits.Value()))
-			return v
-		} else if s == 2 {
+			return JsonValue{
+				Value:     v,
+				ValueType: NUMBER,
+			}
+		} else if size == 2 {
 			signStr := values[0]
 			digits := values[1]
 			// TODO: handle errors properly
 			sign, _ := strconv.Atoi(fmt.Sprintf("%s", signStr.Value()))
 			v, _ := strconv.Atoi(fmt.Sprintf("%s", digits.Value()))
-			return sign * v
+			return JsonValue{
+				Value:     sign * v,
+				ValueType: NUMBER,
+			}
 		}
-		return nil
+		return JsonValue{
+			ValueType: UNKNOWN,
+		}
 	}),
 }
 
