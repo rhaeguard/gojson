@@ -184,7 +184,6 @@ var newGrammar = []GrammarRule{
 			}
 		} else if len(values) == 3 {
 			jsonValues := (values[0].Value().(JsonValue)).Value.([]JsonValue)
-			//jsonValues := array.Value.([]JsonValue)
 			e := values[2].Value().(JsonValue)
 			jsonValues = append(jsonValues, e)
 
@@ -318,7 +317,7 @@ func (se StackElement) Value() interface{} {
 	return se.rule.value
 }
 
-func anyPartialMatch(candidates ...ElementType) (string, bool) {
+func anyIncompletePrefix(candidates ...ElementType) (string, bool) {
 	// find all matches
 	// full or partial
 	// only match or multiple matches
@@ -353,13 +352,11 @@ func anyPartialMatch(candidates ...ElementType) (string, bool) {
 					matchType: "full",
 					prodSize:  rSize,
 				}
-				//return "full", true
 			} else {
 				p = payload{
 					matchType: "partial",
 					prodSize:  rSize,
 				}
-				//return "partial", false
 			}
 			data = append(data, p)
 		}
