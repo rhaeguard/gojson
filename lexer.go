@@ -1,20 +1,33 @@
-package main
+package gojson
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
+
+type SyntaxError struct {
+	Pos int
+	Msg string
+}
+
+func (se *SyntaxError) Error() string {
+	return fmt.Sprintf("%s at position %d", se.Msg, se.Pos)
+}
+
+func NewSyntaxError(Pos int, Msg string) *SyntaxError {
+	return &SyntaxError{Pos, Msg}
+}
 
 type Token struct {
 	value     any
 	tokenType ElementType
 }
 
-var enclosingSymbols = map[uint8]ElementType{
+var specialSymbols = map[uint8]ElementType{
 	'{': TTObjectStart,
 	'}': TTObjectEnd,
 	'[': TTArrayStart,
 	']': TTArrayEnd,
-}
-
-var specialSymbols = map[uint8]ElementType{
 	',': TTComma,
 	':': TTColon,
 	'.': TTFractionSymbol,
@@ -24,18 +37,13 @@ func isWhitespace(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n'
 }
 
-func lex(input string) []Token {
+func lex(input string) ([]Token, *SyntaxError) {
 	var tokens []Token
 	for i := 0; i < len(input); {
 		ch := input[i]
 
 		switch ch {
-		case '{', '}', '[', ']':
-			tokens = append(tokens, Token{
-				tokenType: enclosingSymbols[ch],
-			})
-			i++
-		case ',', ':':
+		case '{', '}', '[', ']', ',', ':', '.':
 			tokens = append(tokens, Token{
 				tokenType: specialSymbols[ch],
 			})
@@ -52,7 +60,7 @@ func lex(input string) []Token {
 				})
 				i += 4
 			} else {
-				panic("invalid syntax")
+				return nil, NewSyntaxError(i, "Unrecognized token")
 			}
 		case 'f':
 			if "false" == input[i:i+5] {
@@ -62,7 +70,7 @@ func lex(input string) []Token {
 				})
 				i += 5
 			} else {
-				panic("invalid syntax")
+				return nil, NewSyntaxError(i, "Unrecognized token")
 			}
 		case 'n':
 			if "null" == input[i:i+4] {
@@ -71,7 +79,7 @@ func lex(input string) []Token {
 				})
 				i += 4
 			} else {
-				panic("invalid syntax")
+				return nil, NewSyntaxError(i, "Unrecognized token")
 			}
 		case ' ', '\t', '\n':
 			for i < len(input) && isWhitespace(input[i]) {
@@ -94,13 +102,12 @@ func lex(input string) []Token {
 			i += offset
 		}
 	}
-
-	return tokens
+	return tokens, nil
 }
 
 func lexDigits(input string, i int) (Token, int) {
 	var sb strings.Builder
-	for input[i] >= '0' && input[i] <= '9' {
+	for i < len(input) && input[i] >= '0' && input[i] <= '9' {
 		sb.WriteByte(input[i])
 		i++
 	}

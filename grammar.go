@@ -1,8 +1,10 @@
-package main
+package gojson
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 )
 
 type ElementType = string
@@ -18,6 +20,8 @@ const (
 	Elements ElementType = "ELEMENTS"
 	Object   ElementType = "OBJECT"
 	Boolean  ElementType = "BOOLEAN"
+	Exponent ElementType = "EXPONENT"
+	Fraction ElementType = "FRACTION"
 	/* the rest represents literal tokens */
 	TTObjectStart    ElementType = "TT_OBJECT_START"
 	TTObjectEnd      ElementType = "TT_OBJECT_END"
@@ -199,18 +203,36 @@ var newGrammar = []GrammarRule{
 		return values[0].Value().(JsonValue)
 	}),
 	grammarRule(Number, [][]ElementType{
-		{Integer, TTFractionSymbol, TTDigits, TTExponent, Integer},
-		{Integer, TTFractionSymbol, TTDigits},
-		{Integer, TTExponent, Integer},
+		{Integer, Fraction, Exponent},
+		{Integer, Fraction},
+		{Integer, Exponent},
 		{Integer},
 	}, func(values ...*StackElement) JsonValue {
-		// TODO: handle all cases
-		if len(values) >= 1 {
-			integer := values[0]
-			return integer.Value().(JsonValue)
+		size := len(values)
+		var integerValue = values[0].Value().(JsonValue).Value.(string)
+
+		var fractionDigits string
+		if size == 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), ".") {
+			fractionDigits = values[1].Value().(JsonValue).Value.(string)
+		} else {
+			fractionDigits = ""
 		}
+
+		var exponentDigits string
+		if size == 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), "e") {
+			exponentDigits = values[1].Value().(JsonValue).Value.(string)
+		} else if (size == 3 && fractionDigits != "") && strings.HasPrefix(values[2].Value().(JsonValue).Value.(string), "e") {
+			exponentDigits = values[2].Value().(JsonValue).Value.(string)
+		} else {
+			exponentDigits = ""
+		}
+
+		expression := fmt.Sprintf("%s%s%s", integerValue, fractionDigits, exponentDigits)
+		value, _ := strconv.ParseFloat(expression, 64)
+
 		return JsonValue{
-			ValueType: UNKNOWN,
+			Value:     value,
+			ValueType: NUMBER,
 		}
 	}),
 	grammarRule(Integer, [][]ElementType{
@@ -219,9 +241,8 @@ var newGrammar = []GrammarRule{
 	}, func(values ...*StackElement) JsonValue {
 		size := len(values)
 		if size == 1 {
-			digits := values[0]
 			// TODO: handle errors properly
-			v, _ := strconv.Atoi(fmt.Sprintf("%s", digits.Value()))
+			v := fmt.Sprintf("%s", values[0].Value())
 			return JsonValue{
 				Value:     v,
 				ValueType: NUMBER,
@@ -229,16 +250,46 @@ var newGrammar = []GrammarRule{
 		} else if size == 2 {
 			signStr := values[0]
 			digits := values[1]
-			// TODO: handle errors properly
-			sign, _ := strconv.Atoi(fmt.Sprintf("%s", signStr.Value()))
-			v, _ := strconv.Atoi(fmt.Sprintf("%s", digits.Value()))
+			v := fmt.Sprintf("%c%s", signStr.Value().(uint8), digits.Value())
 			return JsonValue{
-				Value:     sign * v,
+				Value:     v,
 				ValueType: NUMBER,
 			}
 		}
 		return JsonValue{
 			ValueType: UNKNOWN,
+		}
+	}),
+	grammarRule(Fraction, [][]ElementType{
+		{TTFractionSymbol, TTDigits},
+	}, func(values ...*StackElement) JsonValue {
+		if len(values) != 2 {
+			return JsonValue{
+				ValueType: UNKNOWN,
+			}
+		}
+
+		var fractionDigits = fmt.Sprintf(".%s", values[1].Value())
+
+		return JsonValue{
+			Value:     fractionDigits,
+			ValueType: NUMBER,
+		}
+	}),
+	grammarRule(Exponent, [][]ElementType{
+		{TTExponent, Integer},
+	}, func(values ...*StackElement) JsonValue {
+		if len(values) != 2 {
+			return JsonValue{
+				ValueType: UNKNOWN,
+			}
+		}
+
+		var exponentExpr = fmt.Sprintf("e%s", values[1].Value())
+
+		return JsonValue{
+			Value:     exponentExpr,
+			ValueType: NUMBER,
 		}
 	}),
 }
@@ -267,11 +318,15 @@ func (se StackElement) Value() interface{} {
 	return se.rule.value
 }
 
-func anyPartialMatch(candidates ...ElementType) (ElementType, bool) {
+func anyPartialMatch(candidates ...ElementType) (string, bool) {
 	// find all matches
-	// if the only match is a full-match => return appropriately
-	// otherwise it's a partial match => return appropriately
-	// if no match => false
+	// full or partial
+	// only match or multiple matches
+	type payload struct {
+		matchType string
+		prodSize  int
+	}
+	data := []payload{}
 	for _, rule := range newGrammar {
 		outcomes := rule.Rhs
 		for _, production := range outcomes {
@@ -292,11 +347,31 @@ func anyPartialMatch(candidates ...ElementType) (ElementType, bool) {
 				continue
 			}
 
-			if cSize != rSize {
+			var p payload
+			if cSize == rSize {
+				p = payload{
+					matchType: "full",
+					prodSize:  rSize,
+				}
+				//return "full", true
+			} else {
+				p = payload{
+					matchType: "partial",
+					prodSize:  rSize,
+				}
+				//return "partial", false
 			}
-			return rule.Lhs, true
+			data = append(data, p)
 		}
 	}
 
-	return "", false
+	if len(data) == 0 {
+		return "none", false
+	}
+
+	sort.SliceStable(data, func(i, j int) bool {
+		return data[i].prodSize > data[j].prodSize
+	})
+
+	return data[0].matchType, true
 }

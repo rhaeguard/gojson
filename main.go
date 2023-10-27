@@ -1,19 +1,12 @@
-package main
+package gojson
 
-import (
-	"fmt"
-)
+func parseJson(input string) (JsonValue, *SyntaxError) {
+	tokens, err := lex(input)
 
-//const ExampleJson = `{      "value" : 112312312 , "name" : "renault" }`
+	if err != nil {
+		return JsonValue{}, err
+	}
 
-const ExampleJson = `{ "value" : [1239, 12345], "name" : "renault", "token": true, "hello": null }`
-
-//
-//const ExampleJson = `[{ "value" : 12 }]`
-
-func main() {
-	tokens := lex(ExampleJson)
-	//fmt.Printf("%-v", tokens)
 	var stack []*StackElement
 
 	size := len(tokens)
@@ -24,28 +17,32 @@ func main() {
 			value: lookahead,
 		}
 
-		fmt.Printf("s: %-v\n", stack)
-		if _, matches := anyPartialMatch(lookahead.tokenType); matches {
+		if matchType, matches := anyPartialMatch(lookahead.tokenType); matches {
 			i++
 			stack = append(stack, newStackElement)
-			continue
-		}
 
-		var topOfStack = ""
-		if len(stack) > 1 {
-			v := stack[len(stack)-1]
-			if v.rule == nil {
-				topOfStack = v.value.tokenType
-			} else {
-				topOfStack = v.rule.jsonElementType
-			}
-		}
-
-		if topOfStack != "" {
-			if _, matches := anyPartialMatch(topOfStack, lookahead.tokenType); matches {
-				i++
-				stack = append(stack, newStackElement)
+			if matchType == "partial" {
 				continue
+			}
+		} else {
+			var topOfStack = ""
+			if len(stack) > 1 {
+				v := stack[len(stack)-1]
+				if v.rule == nil {
+					topOfStack = v.value.tokenType
+				} else {
+					topOfStack = v.rule.jsonElementType
+				}
+			}
+
+			if topOfStack != "" {
+				if matchType, matches := anyPartialMatch(topOfStack, lookahead.tokenType); matches {
+					i++
+					stack = append(stack, newStackElement)
+					if matchType == "partial" {
+						continue
+					}
+				}
 			}
 		}
 
@@ -54,10 +51,6 @@ func main() {
 			stack = append(stack, &StackElement{
 				rule: jsonElement,
 			})
-			fmt.Printf("l: %-v\n", stack)
-		} else {
-			i++
-			stack = append(stack, newStackElement)
 		}
 	}
 
@@ -69,7 +62,6 @@ func main() {
 			stack = append(stack, &StackElement{
 				rule: jsonElement,
 			})
-			fmt.Printf("f: %-v\n", stack)
 			continueReduction = true
 		}
 		if !continueReduction {
@@ -77,5 +69,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("%-v\n", stack)
+	arrayWrapper := stack[0].rule.value.(JsonValue)
+	element := arrayWrapper.Value.([]JsonValue)[0]
+	return element, nil
 }

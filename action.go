@@ -1,4 +1,4 @@
-package main
+package gojson
 
 func action(stack []*StackElement) (*JsonElement, int) {
 	stackSize := len(stack)
