@@ -16,7 +16,7 @@ func action(stack []*StackElement) (*JsonElement, int) {
 			}
 			actual := topNOfStack(stack, size)
 			matches := compare(expansion, actual)
-			if matches && size > offsetSize { // TODO: what if they are equal?
+			if matches && size > offsetSize {
 				je = &JsonElement{
 					value:           rule.ToJson(stack[len(stack)-size:]...),
 					jsonElementType: lhs,
@@ -24,10 +24,6 @@ func action(stack []*StackElement) (*JsonElement, int) {
 				offsetSize = size
 			}
 		}
-	}
-
-	if offsetSize != 0 {
-
 	}
 
 	return je, offsetSize
