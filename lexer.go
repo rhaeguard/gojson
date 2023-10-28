@@ -37,6 +37,10 @@ func isWhitespace(ch uint8) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n'
 }
 
+func isDigit(ch uint8) bool {
+	return ch >= '0' && ch <= '9'
+}
+
 func lex(input string) ([]Token, *SyntaxError) {
 	var tokens []Token
 	for i := 0; i < len(input); {
@@ -100,9 +104,13 @@ func lex(input string) ([]Token, *SyntaxError) {
 			})
 			i++
 		default:
-			token, offset := lexDigits(input, i)
-			tokens = append(tokens, token)
-			i += offset
+			if isDigit(ch) {
+				token, offset := lexDigits(input, i)
+				tokens = append(tokens, token)
+				i += offset
+			} else {
+				return nil, newSyntaxError(i, "unrecognized token")
+			}
 		}
 	}
 	return tokens, nil
@@ -110,7 +118,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 
 func lexDigits(input string, i int) (Token, int) {
 	var sb strings.Builder
-	for i < len(input) && input[i] >= '0' && input[i] <= '9' {
+	for i < len(input) && isDigit(input[i]) {
 		sb.WriteByte(input[i])
 		i++
 	}
@@ -124,7 +132,7 @@ func lexDigits(input string, i int) (Token, int) {
 func lexString(input string, i int) (Token, int, *SyntaxError) {
 	i++ // move past the opening quotes
 	var sb strings.Builder
-	for input[i] != '"' { // Quote might be escaped
+	for input[i] != '"' { // TODO: Quote might be escaped
 		sb.WriteByte(input[i])
 		i++
 		if i >= len(input) {

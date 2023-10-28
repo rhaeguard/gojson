@@ -2,7 +2,6 @@ package gojson
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -183,7 +182,7 @@ var newGrammar = []GrammarRule{
 		var integerValue = values[0].Value().(JsonValue).Value.(string)
 
 		var fraction string
-		if size == 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), ".") {
+		if size >= 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), ".") {
 			fraction = values[1].Value().(JsonValue).Value.(string)
 		} else {
 			fraction = ""
@@ -239,7 +238,7 @@ var newGrammar = []GrammarRule{
 	grammarRule(Exponent, [][]ElementType{
 		{TTExponent, Integer},
 	}, func(values ...*StackElement) JsonValue {
-		var exponentExpr = fmt.Sprintf("e%s", values[1].Value())
+		var exponentExpr = fmt.Sprintf("e%s", values[1].Value().(JsonValue).Value.(string))
 
 		return JsonValue{
 			Value:     exponentExpr,
@@ -270,60 +269,4 @@ func (se StackElement) Value() interface{} {
 		return se.value.value
 	}
 	return se.rule.value
-}
-
-func anyIncompletePrefix(candidates ...ElementType) (string, bool) {
-	// find all matches
-	// full or partial
-	// only match or multiple matches
-	type payload struct {
-		matchType string
-		prodSize  int
-	}
-	data := []payload{}
-	for _, rule := range newGrammar {
-		outcomes := rule.Rhs
-		for _, production := range outcomes {
-			cSize := len(candidates)
-			rSize := len(production)
-
-			if cSize > rSize {
-				continue
-			}
-
-			continueOuter := false
-			for i := 0; i < cSize; i++ {
-				if candidates[i] != production[i] {
-					continueOuter = true
-				}
-			}
-			if continueOuter {
-				continue
-			}
-
-			var p payload
-			if cSize == rSize {
-				p = payload{
-					matchType: "full",
-					prodSize:  rSize,
-				}
-			} else {
-				p = payload{
-					matchType: "partial",
-					prodSize:  rSize,
-				}
-			}
-			data = append(data, p)
-		}
-	}
-
-	if len(data) == 0 {
-		return "none", false
-	}
-
-	sort.SliceStable(data, func(i, j int) bool {
-		return data[i].prodSize > data[j].prodSize
-	})
-
-	return data[0].matchType, true
 }
