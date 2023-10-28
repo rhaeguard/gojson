@@ -121,3 +121,32 @@ func TestErrorHandling2(t *testing.T) {
 		}
 	})
 }
+
+func TestErrorHandling3(t *testing.T) {
+	var inputJson = `{
+  "string": "Hello, World!",
+  "number": 42,
+  "boolean": true,
+  "null": null,
+  "array": [1, 2, 3],
+  "object": {
+    "property1": "value1",
+    "property2": 2,
+    "property3": false
+  },
+  "nested_array": [
+    "apple",
+    3.14,
+    {
+      "nested_object": "value"
+    }
+  ]
+}
+`
+	t.Run("parse example 2", func(t *testing.T) {
+		_, err := parseJson(inputJson)
+		if err != nil {
+			t.Fail()
+		}
+	})
+}

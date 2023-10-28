@@ -62,7 +62,7 @@ func parseJson(input string) (JsonValue, *SyntaxError) {
 		}
 
 		if noReducePreviously {
-			return JsonValue{}, NewSyntaxError(-1, fmt.Sprintf("Expected: %s", lookahead.tokenType))
+			return JsonValue{}, newSyntaxError(-1, fmt.Sprintf("Expected: %s", lookahead.tokenType))
 		}
 
 		if jsonElement, offset := action(stack); offset != 0 {
@@ -88,13 +88,13 @@ func parseJson(input string) (JsonValue, *SyntaxError) {
 	}
 
 	if len(stack) != 1 {
-		return JsonValue{}, NewSyntaxError(-1, "Parsing failed...")
+		return JsonValue{}, newSyntaxError(-1, "Parsing failed...")
 	}
 
 	values := stack[0].rule.value.(JsonValue).Value.([]JsonValue)
 
 	if len(values) != 1 {
-		return JsonValue{}, NewSyntaxError(-1, "Parsing failed...")
+		return JsonValue{}, newSyntaxError(-1, "Parsing failed...")
 	}
 	return values[0], nil
 }

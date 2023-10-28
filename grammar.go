@@ -83,21 +83,9 @@ var newGrammar = []GrammarRule{
 		{TTBoolean},
 	}, func(values ...*StackElement) JsonValue {
 		b := values[0].Value().(string)
-		if b == "true" {
-			return JsonValue{
-				Value:     true,
-				ValueType: BOOL,
-			}
-		} else if b == "false" {
-			return JsonValue{
-				Value:     false,
-				ValueType: BOOL,
-			}
-		}
-
 		return JsonValue{
-			Value:     nil,
-			ValueType: UNKNOWN,
+			Value:     b == "true",
+			ValueType: BOOL,
 		}
 	}),
 	grammarRule(Object, [][]ElementType{
@@ -105,52 +93,47 @@ var newGrammar = []GrammarRule{
 		{TTObjectStart, Members, TTObjectEnd},
 	}, func(values ...*StackElement) JsonValue {
 		// TODO: incomplete
-		if len(values) == 3 {
-			return values[1].Value().(JsonValue)
+		if len(values) == 2 {
+			return JsonValue{
+				Value:     map[string]JsonValue{},
+				ValueType: OBJECT,
+			}
 		}
-		return JsonValue{
-			Value: map[string]JsonValue{},
-		}
+		return values[1].Value().(JsonValue)
 	}),
 	grammarRule(Members, [][]ElementType{
 		{Member},
 		{Members, TTComma, Member},
 	}, func(values ...*StackElement) JsonValue {
-		if len(values) == 1 {
-			return values[0].Value().(JsonValue)
-		} else if len(values) == 3 {
-			mp := values[0].Value().(JsonValue)
-			n := values[2].Value().(JsonValue)
+		size := len(values)
+		var members = map[string]JsonValue{}
+		member := values[size-1].Value().(JsonValue).Value.(map[string]JsonValue)
 
-			kvs := mp.Value.(map[string]JsonValue)
-			kvn := n.Value.(map[string]JsonValue)
+		if size == 3 {
+			members = values[0].Value().(JsonValue).Value.(map[string]JsonValue)
+		}
 
-			for k, v := range kvn {
-				kvs[k] = v
-			}
-
-			return JsonValue{
-				ValueType: OBJECT,
-				Value:     kvs,
-			}
+		for k, v := range member {
+			members[k] = v
 		}
 
 		return JsonValue{
-			ValueType: UNKNOWN,
+			ValueType: OBJECT,
+			Value:     members,
 		}
 	}),
 	grammarRule(Member, [][]ElementType{
 		{TTString, TTColon, Value},
 	}, func(values ...*StackElement) JsonValue {
 		keyName := values[0]
-		valueObj := values[2]
+		valueObj := values[2].Value().(JsonValue)
 
 		key := fmt.Sprintf("%s", keyName.Value())
 
 		return JsonValue{
 			ValueType: OBJECT,
 			Value: map[string]JsonValue{
-				key: valueObj.Value().(JsonValue),
+				key: valueObj,
 			},
 		}
 	}),
@@ -163,37 +146,26 @@ var newGrammar = []GrammarRule{
 				ValueType: ARRAY,
 				Value:     []JsonValue{},
 			}
-		} else if len(values) == 3 {
-			return values[1].Value().(JsonValue)
 		}
-		return JsonValue{
-			ValueType: UNKNOWN,
-		}
+		return values[1].Value().(JsonValue)
 	}),
 	grammarRule(Elements, [][]ElementType{
 		{Element},
 		{Elements, TTComma, Element},
 	}, func(values ...*StackElement) JsonValue {
-		// TODO: incomplete
-		if len(values) == 1 {
-			return JsonValue{
-				ValueType: ARRAY,
-				Value: []JsonValue{
-					values[0].Value().(JsonValue),
-				},
-			}
-		} else if len(values) == 3 {
-			jsonValues := (values[0].Value().(JsonValue)).Value.([]JsonValue)
-			e := values[2].Value().(JsonValue)
-			jsonValues = append(jsonValues, e)
+		size := len(values)
 
-			return JsonValue{
-				ValueType: ARRAY,
-				Value:     jsonValues,
-			}
+		var elements []JsonValue
+		if size == 3 {
+			elements = (values[0].Value().(JsonValue)).Value.([]JsonValue)
 		}
+
+		element := values[size-1].Value().(JsonValue)
+		elements = append(elements, element)
+
 		return JsonValue{
-			ValueType: UNKNOWN,
+			ValueType: ARRAY,
+			Value:     elements,
 		}
 	}),
 	grammarRule(Element, [][]ElementType{
@@ -210,24 +182,28 @@ var newGrammar = []GrammarRule{
 		size := len(values)
 		var integerValue = values[0].Value().(JsonValue).Value.(string)
 
-		var fractionDigits string
+		var fraction string
 		if size == 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), ".") {
-			fractionDigits = values[1].Value().(JsonValue).Value.(string)
+			fraction = values[1].Value().(JsonValue).Value.(string)
 		} else {
-			fractionDigits = ""
+			fraction = ""
 		}
 
-		var exponentDigits string
+		var exponent string
 		if size == 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), "e") {
-			exponentDigits = values[1].Value().(JsonValue).Value.(string)
-		} else if (size == 3 && fractionDigits != "") && strings.HasPrefix(values[2].Value().(JsonValue).Value.(string), "e") {
-			exponentDigits = values[2].Value().(JsonValue).Value.(string)
+			exponent = values[1].Value().(JsonValue).Value.(string)
+		} else if size == 3 && strings.HasPrefix(values[2].Value().(JsonValue).Value.(string), "e") {
+			exponent = values[2].Value().(JsonValue).Value.(string)
 		} else {
-			exponentDigits = ""
+			exponent = ""
 		}
 
-		expression := fmt.Sprintf("%s%s%s", integerValue, fractionDigits, exponentDigits)
-		value, _ := strconv.ParseFloat(expression, 64)
+		expression := fmt.Sprintf("%s%s%s", integerValue, fraction, exponent)
+		value, err := strconv.ParseFloat(expression, 64) // TODO: potential for an error!
+
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+		}
 
 		return JsonValue{
 			Value:     value,
@@ -239,35 +215,20 @@ var newGrammar = []GrammarRule{
 		{TTSign, TTDigits},
 	}, func(values ...*StackElement) JsonValue {
 		size := len(values)
-		if size == 1 {
-			// TODO: handle errors properly
-			v := fmt.Sprintf("%s", values[0].Value())
-			return JsonValue{
-				Value:     v,
-				ValueType: NUMBER,
-			}
-		} else if size == 2 {
-			signStr := values[0]
-			digits := values[1]
-			v := fmt.Sprintf("%c%s", signStr.Value().(uint8), digits.Value())
-			return JsonValue{
-				Value:     v,
-				ValueType: NUMBER,
-			}
+		digits := values[size-1]
+		var sign uint8 = '+'
+		if size == 2 {
+			sign = values[0].Value().(uint8) // - or +
 		}
+		v := fmt.Sprintf("%c%s", sign, digits.Value())
 		return JsonValue{
-			ValueType: UNKNOWN,
+			Value:     v,
+			ValueType: NUMBER,
 		}
 	}),
 	grammarRule(Fraction, [][]ElementType{
 		{TTFractionSymbol, TTDigits},
 	}, func(values ...*StackElement) JsonValue {
-		if len(values) != 2 {
-			return JsonValue{
-				ValueType: UNKNOWN,
-			}
-		}
-
 		var fractionDigits = fmt.Sprintf(".%s", values[1].Value())
 
 		return JsonValue{
@@ -278,12 +239,6 @@ var newGrammar = []GrammarRule{
 	grammarRule(Exponent, [][]ElementType{
 		{TTExponent, Integer},
 	}, func(values ...*StackElement) JsonValue {
-		if len(values) != 2 {
-			return JsonValue{
-				ValueType: UNKNOWN,
-			}
-		}
-
 		var exponentExpr = fmt.Sprintf("e%s", values[1].Value())
 
 		return JsonValue{

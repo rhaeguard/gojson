@@ -14,7 +14,7 @@ func (se *SyntaxError) Error() string {
 	return fmt.Sprintf("%s at position %d", se.Msg, se.Pos)
 }
 
-func NewSyntaxError(Pos int, Msg string) *SyntaxError {
+func newSyntaxError(Pos int, Msg string) *SyntaxError {
 	return &SyntaxError{Pos, Msg}
 }
 
@@ -49,7 +49,10 @@ func lex(input string) ([]Token, *SyntaxError) {
 			})
 			i++
 		case '"':
-			token, offset := lexString(input, i)
+			token, offset, err := lexString(input, i)
+			if err != nil {
+				return nil, err
+			}
 			tokens = append(tokens, token)
 			i += offset
 		case 't':
@@ -60,7 +63,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 4
 			} else {
-				return nil, NewSyntaxError(i, "Unrecognized token")
+				return nil, newSyntaxError(i, "Unrecognized token")
 			}
 		case 'f':
 			if "false" == input[i:i+5] {
@@ -70,7 +73,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 5
 			} else {
-				return nil, NewSyntaxError(i, "Unrecognized token")
+				return nil, newSyntaxError(i, "unrecognized token")
 			}
 		case 'n':
 			if "null" == input[i:i+4] {
@@ -79,7 +82,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 4
 			} else {
-				return nil, NewSyntaxError(i, "Unrecognized token")
+				return nil, newSyntaxError(i, "unrecognized token")
 			}
 		case ' ', '\t', '\n':
 			for i < len(input) && isWhitespace(input[i]) {
@@ -118,16 +121,21 @@ func lexDigits(input string, i int) (Token, int) {
 	}, sb.Len()
 }
 
-func lexString(input string, i int) (Token, int) {
-	i++
+func lexString(input string, i int) (Token, int, *SyntaxError) {
+	i++ // move past the opening quotes
 	var sb strings.Builder
 	for input[i] != '"' { // Quote might be escaped
 		sb.WriteByte(input[i])
 		i++
+		if i >= len(input) {
+			return Token{}, -1, newSyntaxError(i, "string is not properly closed")
+		}
 	}
 
 	return Token{
-		tokenType: TTString,
-		value:     sb.String(),
-	}, sb.Len() + 2 // both quotes
+			tokenType: TTString,
+			value:     sb.String(),
+		},
+		sb.Len() + 2, // for both the quotes
+		nil
 }
