@@ -24,53 +24,53 @@ func TestErrorHandling34(t *testing.T) {
 		var refFloat64 float64
 
 		// string
-		json, _ := parseJson(`"hello world"`)
+		json, _ := ParseJson(`"hello world"`)
 		if synErr := json.Unmarshal(&refString); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// bool
-		json, _ = parseJson(`true`)
+		json, _ = ParseJson(`true`)
 		if synErr := json.Unmarshal(&refBool); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// int
-		json, _ = parseJson(`-1243`)
+		json, _ = ParseJson(`-1243`)
 		if synErr := json.Unmarshal(&refInt); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// float64
-		json, _ = parseJson(`-0.9912`)
+		json, _ = ParseJson(`-0.9912`)
 		if synErr := json.Unmarshal(&refFloat64); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// slice
 		var nums []float64
-		json, _ = parseJson(`[1, 2, 3]`)
+		json, _ = ParseJson(`[1, 2, 3]`)
 		if synErr := json.Unmarshal(&nums); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// object
 		var person Person
-		json, _ = parseJson(`{"Name": "John", "Age": 25}`)
+		json, _ = ParseJson(`{"Name": "John", "Age": 25}`)
 		if synErr := json.Unmarshal(&person); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// array of objects
 		var persons []Person
-		json, _ = parseJson(`[{"Name": "John", "Age": 25},{"Name": "Jane", "Age": 23}]`)
+		json, _ = ParseJson(`[{"Name": "John", "Age": 25},{"Name": "Jane", "Age": 23}]`)
 		if synErr := json.Unmarshal(&persons); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}
 
 		// complex
 		var cPerson ComplexPerson
-		json, _ = parseJson(`{"Person": {"Name": "John", "Age": 25}, "Job": "Plumber", "LuckyNumbers": [-1, 0, 1, 1022]}`)
+		json, _ = ParseJson(`{"Person": {"Name": "John", "Age": 25}, "Job": "Plumber", "LuckyNumbers": [-1, 0, 1, 1022]}`)
 		if synErr := json.Unmarshal(&cPerson); synErr != nil {
 			t.Fatalf("%s", synErr.Error())
 		}

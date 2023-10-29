@@ -5,20 +5,20 @@ import (
 	"strings"
 )
 
-type SyntaxError struct {
+type Error struct {
 	Pos int
 	Msg string
 }
 
-func (se *SyntaxError) Error() string {
+func (se *Error) Error() string {
 	if se.Pos == -1 {
 		return se.Msg
 	}
 	return fmt.Sprintf("%s at position %d", se.Msg, se.Pos)
 }
 
-func newSyntaxError(Pos int, Msg string) *SyntaxError {
-	return &SyntaxError{Pos, Msg}
+func newError(Pos int, Msg string) *Error {
+	return &Error{Pos, Msg}
 }
 
 type Token struct {
@@ -44,7 +44,7 @@ func isDigit(ch uint8) bool {
 	return ch >= '0' && ch <= '9'
 }
 
-func lex(input string) ([]Token, *SyntaxError) {
+func lex(input string) ([]Token, *Error) {
 	var tokens []Token
 	for i := 0; i < len(input); {
 		ch := input[i]
@@ -70,7 +70,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 4
 			} else {
-				return nil, newSyntaxError(i, "unrecognized token")
+				return nil, newError(i, "unrecognized token")
 			}
 		case 'f':
 			if "false" == input[i:i+5] {
@@ -80,7 +80,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 5
 			} else {
-				return nil, newSyntaxError(i, "unrecognized token")
+				return nil, newError(i, "unrecognized token")
 			}
 		case 'n':
 			if "null" == input[i:i+4] {
@@ -89,7 +89,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 4
 			} else {
-				return nil, newSyntaxError(i, "unrecognized token")
+				return nil, newError(i, "unrecognized token")
 			}
 		case ' ', '\t', '\n':
 			for i < len(input) && isWhitespace(input[i]) {
@@ -112,7 +112,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				tokens = append(tokens, token)
 				i += offset
 			} else {
-				return nil, newSyntaxError(i, "unrecognized token")
+				return nil, newError(i, "unrecognized token")
 			}
 		}
 	}
@@ -132,14 +132,14 @@ func lexDigits(input string, i int) (Token, int) {
 	}, sb.Len()
 }
 
-func lexString(input string, i int) (Token, int, *SyntaxError) {
+func lexString(input string, i int) (Token, int, *Error) {
 	i++ // move past the opening quotes
 	var sb strings.Builder
 	for input[i] != '"' { // TODO: Quote might be escaped
 		sb.WriteByte(input[i])
 		i++
 		if i >= len(input) {
-			return Token{}, -1, newSyntaxError(i, "string is not properly closed")
+			return Token{}, -1, newError(i, "string is not properly closed")
 		}
 	}
 

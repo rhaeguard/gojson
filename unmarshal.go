@@ -112,29 +112,9 @@ func (jv *JsonValue) setValue(kind reflect.Kind, v reflect.Value) error {
 	} else if converter, ok := numbers[kind]; ok {
 		v.Set(reflect.ValueOf(converter(jv.Value.(float64))))
 	} else if kind == reflect.Slice {
-		dataType := v.Type().Elem().Kind()
-
-		values := jv.Value.([]JsonValue)
-		var jsonType = values[0].ValueType
-
-		for _, value := range values {
-			if value.ValueType != jsonType {
-				return errors.New("json array does not have elements of one type")
-			}
+		if err := jv.handleSlice(v, jt, ok); err != nil {
+			return err
 		}
-
-		if jt, ok = isSupported(dataType); !ok || jt != jsonType {
-			return errors.New("type mismatch for array")
-		}
-
-		refSlice := reflect.MakeSlice(reflect.SliceOf(v.Type().Elem()), len(values), len(values))
-
-		for i := 0; i < len(values); i++ {
-			if err := values[i].setValue(dataType, refSlice.Index(i)); err != nil {
-				return err
-			}
-		}
-		v.Set(refSlice)
 	} else if kind == reflect.Struct {
 		m := jv.Value.(map[string]JsonValue)
 
@@ -146,5 +126,32 @@ func (jv *JsonValue) setValue(kind reflect.Kind, v reflect.Value) error {
 		}
 
 	}
+	return nil
+}
+
+func (jv *JsonValue) handleSlice(v reflect.Value, jt JsonValueType, ok bool) error {
+	dataType := v.Type().Elem().Kind()
+
+	values := jv.Value.([]JsonValue)
+	var jsonType = values[0].ValueType
+
+	for _, value := range values {
+		if value.ValueType != jsonType {
+			return errors.New("json array does not have elements of one type")
+		}
+	}
+
+	if jt, ok = isSupported(dataType); !ok || jt != jsonType {
+		return errors.New("type mismatch for array")
+	}
+
+	refSlice := reflect.MakeSlice(reflect.SliceOf(v.Type().Elem()), len(values), len(values))
+
+	for i := 0; i < len(values); i++ {
+		if err := values[i].setValue(dataType, refSlice.Index(i)); err != nil {
+			return err
+		}
+	}
+	v.Set(refSlice)
 	return nil
 }

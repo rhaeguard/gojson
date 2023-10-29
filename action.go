@@ -7,8 +7,8 @@ func action(stack []*StackElement) (*JsonElement, int) {
 	var offsetSize int
 
 	for _, rule := range newGrammar {
-		lhs := rule.Lhs
-		expansions := rule.Rhs
+		lhs := rule.lhs
+		expansions := rule.rhs
 		for _, expansion := range expansions {
 			size := len(expansion)
 			if size > stackSize {
@@ -18,7 +18,7 @@ func action(stack []*StackElement) (*JsonElement, int) {
 			matches := compare(expansion, actual)
 			if matches && size > offsetSize {
 				je = &JsonElement{
-					value:           rule.ToJson(stack[len(stack)-size:]...),
+					value:           rule.toJson(stack[len(stack)-size:]...),
 					jsonElementType: lhs,
 				}
 				offsetSize = size

@@ -2,7 +2,7 @@ package gojson
 
 import "fmt"
 
-func parseJson(input string) (JsonValue, *SyntaxError) {
+func ParseJson(input string) (JsonValue, *Error) {
 	tokens, err := lex(input)
 
 	if err != nil {
@@ -28,7 +28,7 @@ func parseJson(input string) (JsonValue, *SyntaxError) {
 		}
 
 		if !reducePerformed {
-			return JsonValue{}, newSyntaxError(-1, fmt.Sprintf("unexpected token: %s", lookahead.tokenType))
+			return JsonValue{}, newError(-1, fmt.Sprintf("unexpected token: %s", lookahead.tokenType))
 		}
 
 		if jsonElement, offset := action(stack); offset != 0 {
@@ -54,13 +54,13 @@ func parseJson(input string) (JsonValue, *SyntaxError) {
 	}
 
 	if len(stack) != 1 {
-		return JsonValue{}, newSyntaxError(-1, "parsing failed...")
+		return JsonValue{}, newError(-1, "parsing failed...")
 	}
 
 	values := stack[0].rule.value.(JsonValue).Value.([]JsonValue)
-
 	if len(values) != 1 {
-		return JsonValue{}, newSyntaxError(-1, "parsing failed...")
+		return JsonValue{}, newError(-1, "parsing failed...")
 	}
+
 	return values[0], nil
 }

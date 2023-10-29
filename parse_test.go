@@ -17,7 +17,7 @@ func TestParse(t *testing.T) {
     "hello": null
 }`
 	t.Run("check json", func(t *testing.T) {
-		json, err := parseJson(inputJson)
+		json, err := ParseJson(inputJson)
 		if err != nil {
 			t.Fatalf("%s", err.Error())
 		}
@@ -74,7 +74,7 @@ func TestParse2(t *testing.T) {
 }
 `
 	t.Run("parse example 2", func(t *testing.T) {
-		json, err := parseJson(inputJson)
+		json, err := ParseJson(inputJson)
 		if err != nil {
 			t.Fatalf("%s", err.Error())
 		}
@@ -166,7 +166,7 @@ func TestNumbers(t *testing.T) {
 	for inputJson, expected := range numberCandidates {
 		name := fmt.Sprintf("numbers(%s)", inputJson)
 		t.Run(name, func(t *testing.T) {
-			json, err := parseJson(inputJson)
+			json, err := ParseJson(inputJson)
 			if err != nil {
 				t.FailNow()
 			}
@@ -200,7 +200,7 @@ func TestErrorHandling(t *testing.T) {
 
 	for name, data := range testCases {
 		t.Run(fmt.Sprintf("error handling: %s", name), func(t *testing.T) {
-			if _, err := parseJson(data.input); err == nil {
+			if _, err := ParseJson(data.input); err == nil {
 				t.Errorf("error value was required")
 			} else {
 				if err.Error() != data.errorMsg {
