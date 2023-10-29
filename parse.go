@@ -28,7 +28,7 @@ func parseJson(input string) (JsonValue, *SyntaxError) {
 		}
 
 		if !reducePerformed {
-			return JsonValue{}, newSyntaxError(-1, fmt.Sprintf("expected: %s", lookahead.tokenType))
+			return JsonValue{}, newSyntaxError(-1, fmt.Sprintf("unexpected token: %s", lookahead.tokenType))
 		}
 
 		if jsonElement, offset := action(stack); offset != 0 {

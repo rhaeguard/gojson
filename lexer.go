@@ -11,6 +11,9 @@ type SyntaxError struct {
 }
 
 func (se *SyntaxError) Error() string {
+	if se.Pos == -1 {
+		return se.Msg
+	}
 	return fmt.Sprintf("%s at position %d", se.Msg, se.Pos)
 }
 
@@ -67,7 +70,7 @@ func lex(input string) ([]Token, *SyntaxError) {
 				})
 				i += 4
 			} else {
-				return nil, newSyntaxError(i, "Unrecognized token")
+				return nil, newSyntaxError(i, "unrecognized token")
 			}
 		case 'f':
 			if "false" == input[i:i+5] {
