@@ -49,20 +49,19 @@ func lex(input string) ([]Token, *Error) {
 	for i := 0; i < len(input); {
 		ch := input[i]
 
-		switch ch {
-		case '{', '}', '[', ']', ',', ':', '.':
+		if _, ok := specialSymbols[ch]; ok {
 			tokens = append(tokens, Token{
 				tokenType: specialSymbols[ch],
 			})
 			i++
-		case '"':
+		} else if ch == '"' {
 			token, offset, err := lexString(input, i)
 			if err != nil {
 				return nil, err
 			}
 			tokens = append(tokens, token)
 			i += offset
-		case 't':
+		} else if ch == 't' {
 			if "true" == input[i:i+4] {
 				tokens = append(tokens, Token{
 					value:     "true",
@@ -72,7 +71,7 @@ func lex(input string) ([]Token, *Error) {
 			} else {
 				return nil, newError(i, "unrecognized token")
 			}
-		case 'f':
+		} else if ch == 'f' {
 			if "false" == input[i:i+5] {
 				tokens = append(tokens, Token{
 					value:     "false",
@@ -82,7 +81,7 @@ func lex(input string) ([]Token, *Error) {
 			} else {
 				return nil, newError(i, "unrecognized token")
 			}
-		case 'n':
+		} else if ch == 'n' {
 			if "null" == input[i:i+4] {
 				tokens = append(tokens, Token{
 					tokenType: TTNull,
@@ -91,29 +90,27 @@ func lex(input string) ([]Token, *Error) {
 			} else {
 				return nil, newError(i, "unrecognized token")
 			}
-		case ' ', '\t', '\n':
+		} else if isWhitespace(ch) {
 			for i < len(input) && isWhitespace(input[i]) {
 				i++
 			}
-		case 'e', 'E':
+		} else if ch == 'e' || ch == 'E' {
 			tokens = append(tokens, Token{
 				tokenType: TTExponent,
 			})
 			i++
-		case '+', '-':
+		} else if ch == '+' || ch == '-' {
 			tokens = append(tokens, Token{
 				value:     ch,
 				tokenType: TTSign,
 			})
 			i++
-		default:
-			if isDigit(ch) {
-				token, offset := lexDigits(input, i)
-				tokens = append(tokens, token)
-				i += offset
-			} else {
-				return nil, newError(i, "unrecognized token")
-			}
+		} else if isDigit(ch) {
+			token, offset := lexDigits(input, i)
+			tokens = append(tokens, token)
+			i += offset
+		} else {
+			return nil, newError(i, "unrecognized token")
 		}
 	}
 	return tokens, nil
