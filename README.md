@@ -24,13 +24,12 @@ type WebConfig struct {
 }
 
 func main() {
-    json, err := gojson.ParseJson(
-        `{
+	inputJson := `{
               "Hostname": "localhost",
               "Port": 8282,
               "IsActive": true
-        }`,
-    )
+        }`
+    json, err := gojson.Parse(inputJson)
     
     if err != nil {
         // error occurred
@@ -44,6 +43,13 @@ func main() {
 	// we can also try to map the values to a struct
     var wc WebConfig
     if uerr := json.Unmarshal(&wc); uerr != nil {
+        // error occurred
+    } else {
+        fmt.Printf("%-v\n", wc.Port)
+    }
+
+	// we can unmarshall in one step as well
+    if uerr := gojson.Unmarshal(inputJson, &wc); uerr != nil {
         // error occurred
     } else {
         fmt.Printf("%-v\n", wc.Port)
