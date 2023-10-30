@@ -190,7 +190,7 @@ func TestErrorHandling(t *testing.T) {
 		},
 		`improperly closed array expression`: {
 			input:    `{"value": [1239,12345}`,
-			errorMsg: "unexpected token: TT_OBJECT_END",
+			errorMsg: "unexpected token: }",
 		},
 		`input is not json`: {
 			input:    `dasdasdsa`,

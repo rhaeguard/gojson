@@ -2,6 +2,7 @@ package gojson
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -16,72 +17,61 @@ type ComplexPerson struct {
 	LuckyNumbers []int
 }
 
-func TestErrorHandling34(t *testing.T) {
-	t.Run("unmarshalling test", func(t *testing.T) {
-		var refString string
-		var refBool bool
-		var refInt int
-		var refFloat64 float64
+func TestUnmarshall(t *testing.T) {
+	doTest := func(refObj interface{}, input string, expected interface{}) {
+		name := fmt.Sprintf("unmarshalling-%s", input)
+		t.Run(name, func(t *testing.T) {
+			json, synErr := ParseJson(input)
+			if synErr != nil {
+				t.Fatalf("%s", synErr.Error())
+			}
+			if mError := json.Unmarshal(refObj); mError != nil {
+				t.Fatalf("%s", mError.Error())
+			} else {
+				v := reflect.ValueOf(refObj).Elem().Interface()
+				if !reflect.DeepEqual(v, expected) {
+					t.Fatalf("expected: '%-v'", expected)
+				}
+			}
+		})
+	}
 
-		// string
-		json, _ := ParseJson(`"hello world"`)
-		if synErr := json.Unmarshal(&refString); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// string
+	var refString string
+	doTest(&refString, `"hello world"`, "hello world")
 
-		// bool
-		json, _ = ParseJson(`true`)
-		if synErr := json.Unmarshal(&refBool); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// bool
+	var refBool bool
+	doTest(&refBool, `true`, true)
 
-		// int
-		json, _ = ParseJson(`-1243`)
-		if synErr := json.Unmarshal(&refInt); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// int
+	var refInt int
+	doTest(&refInt, `-1243`, -1243)
 
-		// float64
-		json, _ = ParseJson(`-0.9912`)
-		if synErr := json.Unmarshal(&refFloat64); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// float64
+	var refFloat64 float64
+	doTest(&refFloat64, `-0.9912`, -0.9912)
 
-		// slice
-		var nums []float64
-		json, _ = ParseJson(`[1, 2, 3]`)
-		if synErr := json.Unmarshal(&nums); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// slice
+	var nums []float64
+	doTest(&nums, `[1, 2, 3]`, []float64{1, 2, 3})
 
-		// object
-		var person Person
-		json, _ = ParseJson(`{"Name": "John", "Age": 25}`)
-		if synErr := json.Unmarshal(&person); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// object
+	var person Person
+	doTest(&person, `{"Name": "John", "Age": 25}`, Person{Name: "John", Age: 25})
 
-		// array of objects
-		var persons []Person
-		json, _ = ParseJson(`[{"Name": "John", "Age": 25},{"Name": "Jane", "Age": 23}]`)
-		if synErr := json.Unmarshal(&persons); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
+	// array of objects
+	var persons []Person
+	doTest(&persons, `[{"Name": "John", "Age": 25},{"Name": "Jane", "Age": 23}]`, []Person{
+		{Name: "John", Age: 25},
+		{Name: "Jane", Age: 23},
+	})
 
-		// complex
-		var cPerson ComplexPerson
-		json, _ = ParseJson(`{"Person": {"Name": "John", "Age": 25}, "Job": "Plumber", "LuckyNumbers": [-1, 0, 1, 1022]}`)
-		if synErr := json.Unmarshal(&cPerson); synErr != nil {
-			t.Fatalf("%s", synErr.Error())
-		}
-
-		fmt.Printf("Value is: '%s'\n", refString)
-		fmt.Printf("Value is: '%t'\n", refBool)
-		fmt.Printf("Value is: '%d'\n", refInt)
-		fmt.Printf("Value is: '%f'\n", refFloat64)
-		fmt.Printf("Value is: '%-v'\n", nums)
-		fmt.Printf("Person is: '%-v'\n", person)
-		fmt.Printf("Persons is: '%-v'\n", persons)
-		fmt.Printf("ComplexPerson is: '%-v'\n", cPerson)
+	// complex object
+	var cPerson ComplexPerson
+	doTest(&cPerson, `{"Person": {"Name": "John", "Age": 25}, "Job": "Plumber", "LuckyNumbers": [-1, 0, 1, 1022]}`, ComplexPerson{
+		Person:       Person{Name: "John", Age: 25},
+		Job:          "Plumber",
+		LuckyNumbers: []int{-1, 0, 1, 1022},
 	})
 }
