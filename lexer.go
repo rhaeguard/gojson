@@ -1,39 +1,22 @@
 package gojson
 
 import (
-	"fmt"
 	"strings"
 )
 
-type Error struct {
-	Pos int
-	Msg string
-}
-
-func (se *Error) Error() string {
-	if se.Pos == -1 {
-		return se.Msg
-	}
-	return fmt.Sprintf("%s at position %d", se.Msg, se.Pos)
-}
-
-func newError(Pos int, Msg string) *Error {
-	return &Error{Pos, Msg}
-}
-
-type Token struct {
+type token struct {
 	value     any
-	tokenType ElementType
+	tokenType elementType
 }
 
-var specialSymbols = map[uint8]ElementType{
-	'{': TTObjectStart,
-	'}': TTObjectEnd,
-	'[': TTArrayStart,
-	']': TTArrayEnd,
-	',': TTComma,
-	':': TTColon,
-	'.': TTFractionSymbol,
+var specialSymbols = map[uint8]elementType{
+	'{': ltObjectStart,
+	'}': ltObjectEnd,
+	'[': ltArrayStart,
+	']': ltArrayEnd,
+	',': ltComma,
+	':': ltColon,
+	'.': ltFractionSymbol,
 }
 
 func isWhitespace(ch uint8) bool {
@@ -44,13 +27,13 @@ func isDigit(ch uint8) bool {
 	return ch >= '0' && ch <= '9'
 }
 
-func lex(input string) ([]Token, *Error) {
-	var tokens []Token
+func lex(input string) ([]token, *Error) {
+	var tokens []token
 	for i := 0; i < len(input); {
 		ch := input[i]
 
 		if _, ok := specialSymbols[ch]; ok {
-			tokens = append(tokens, Token{
+			tokens = append(tokens, token{
 				tokenType: specialSymbols[ch],
 			})
 			i++
@@ -63,9 +46,9 @@ func lex(input string) ([]Token, *Error) {
 			i += offset
 		} else if ch == 't' {
 			if "true" == input[i:i+4] {
-				tokens = append(tokens, Token{
+				tokens = append(tokens, token{
 					value:     "true",
-					tokenType: TTBoolean,
+					tokenType: ltBoolean,
 				})
 				i += 4
 			} else {
@@ -73,9 +56,9 @@ func lex(input string) ([]Token, *Error) {
 			}
 		} else if ch == 'f' {
 			if "false" == input[i:i+5] {
-				tokens = append(tokens, Token{
+				tokens = append(tokens, token{
 					value:     "false",
-					tokenType: TTBoolean,
+					tokenType: ltBoolean,
 				})
 				i += 5
 			} else {
@@ -83,8 +66,8 @@ func lex(input string) ([]Token, *Error) {
 			}
 		} else if ch == 'n' {
 			if "null" == input[i:i+4] {
-				tokens = append(tokens, Token{
-					tokenType: TTNull,
+				tokens = append(tokens, token{
+					tokenType: ltNull,
 				})
 				i += 4
 			} else {
@@ -95,14 +78,14 @@ func lex(input string) ([]Token, *Error) {
 				i++
 			}
 		} else if ch == 'e' || ch == 'E' {
-			tokens = append(tokens, Token{
-				tokenType: TTExponent,
+			tokens = append(tokens, token{
+				tokenType: ltExponent,
 			})
 			i++
 		} else if ch == '+' || ch == '-' {
-			tokens = append(tokens, Token{
+			tokens = append(tokens, token{
 				value:     ch,
-				tokenType: TTSign,
+				tokenType: ltSign,
 			})
 			i++
 		} else if isDigit(ch) {
@@ -116,32 +99,32 @@ func lex(input string) ([]Token, *Error) {
 	return tokens, nil
 }
 
-func lexDigits(input string, i int) (Token, int) {
+func lexDigits(input string, i int) (token, int) {
 	var sb strings.Builder
 	for i < len(input) && isDigit(input[i]) {
 		sb.WriteByte(input[i])
 		i++
 	}
 
-	return Token{
-		tokenType: TTDigits,
+	return token{
+		tokenType: ltDigits,
 		value:     sb.String(),
 	}, sb.Len()
 }
 
-func lexString(input string, i int) (Token, int, *Error) {
+func lexString(input string, i int) (token, int, *Error) {
 	i++ // move past the opening quotes
 	var sb strings.Builder
 	for input[i] != '"' { // TODO: Quote might be escaped
 		sb.WriteByte(input[i])
 		i++
 		if i >= len(input) {
-			return Token{}, -1, newError(i, "string is not properly closed")
+			return token{}, -1, newError(i, "string is not properly closed")
 		}
 	}
 
-	return Token{
-			tokenType: TTString,
+	return token{
+			tokenType: ltString,
 			value:     sb.String(),
 		},
 		sb.Len() + 2, // for both the quotes

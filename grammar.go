@@ -6,52 +6,52 @@ import (
 	"strings"
 )
 
-type ElementType = string
+type elementType = string
 
 const (
-	Number   ElementType = "<number>"
-	Integer  ElementType = "<integer>"
-	Value    ElementType = "<value>"
-	Array    ElementType = "<array>"
-	Members  ElementType = "<object fields>"
-	Member   ElementType = "<object field>"
-	Element  ElementType = "<array element>"
-	Elements ElementType = "<array elements>"
-	Object   ElementType = "<object>"
-	Boolean  ElementType = "<boolean>"
-	Exponent ElementType = "<exponent>"
-	Fraction ElementType = "<fraction>"
+	number   elementType = "<number>"
+	integer  elementType = "<integer>"
+	value    elementType = "<value>"
+	array    elementType = "<array>"
+	members  elementType = "<object fields>"
+	member   elementType = "<object field>"
+	element  elementType = "<array element>"
+	elements elementType = "<array elements>"
+	object   elementType = "<object>"
+	boolean  elementType = "<boolean>"
+	exponent elementType = "<exponent>"
+	fraction elementType = "<fraction>"
 	/* the rest represents literal tokens */
-	TTObjectStart    ElementType = "{"
-	TTObjectEnd      ElementType = "}"
-	TTArrayStart     ElementType = "["
-	TTArrayEnd       ElementType = "]"
-	TTComma          ElementType = ","
-	TTColon          ElementType = ":"
-	TTFractionSymbol ElementType = "."
-	TTBoolean        ElementType = "<bool_literal>"
-	TTExponent       ElementType = "e/E"
-	TTDigits         ElementType = "[0-9] (digits)"
-	TTNull           ElementType = "<null>"
-	TTSign           ElementType = "+/-"
-	TTString         ElementType = "<string_literal>"
+	ltObjectStart    elementType = "{"
+	ltObjectEnd      elementType = "}"
+	ltArrayStart     elementType = "["
+	ltArrayEnd       elementType = "]"
+	ltComma          elementType = ","
+	ltColon          elementType = ":"
+	ltFractionSymbol elementType = "."
+	ltBoolean        elementType = "<bool_literal>"
+	ltExponent       elementType = "e/E"
+	ltDigits         elementType = "[0-9] (digits)"
+	ltNull           elementType = "<null>"
+	ltSign           elementType = "+/-"
+	ltString         elementType = "<string_literal>"
 )
 
-type GrammarRule struct {
+type grammarRule struct {
 	lhs    string
-	rhs    [][]ElementType
-	toJson func(values ...*StackElement) JsonValue
+	rhs    [][]elementType
+	toJson func(values ...*stackElement) JsonValue
 }
 
-var newGrammar = []GrammarRule{
-	GrammarRule{Value, [][]ElementType{
-		{Object},
-		{Array},
-		{Number},
-		{Boolean},
-		{TTString},
-		{TTNull},
-	}, func(values ...*StackElement) JsonValue {
+var newGrammar = []grammarRule{
+	grammarRule{value, [][]elementType{
+		{object},
+		{array},
+		{number},
+		{boolean},
+		{ltString},
+		{ltNull},
+	}, func(values ...*stackElement) JsonValue {
 		v := values[0].Value()
 		if str, ok := v.(string); ok {
 			return JsonValue{
@@ -66,19 +66,19 @@ var newGrammar = []GrammarRule{
 		}
 		return values[0].Value().(JsonValue)
 	}},
-	GrammarRule{Boolean, [][]ElementType{
-		{TTBoolean},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{boolean, [][]elementType{
+		{ltBoolean},
+	}, func(values ...*stackElement) JsonValue {
 		b := values[0].Value().(string)
 		return JsonValue{
 			Value:     b == "true",
 			ValueType: BOOL,
 		}
 	}},
-	GrammarRule{Object, [][]ElementType{
-		{TTObjectStart, TTObjectEnd},
-		{TTObjectStart, Members, TTObjectEnd},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{object, [][]elementType{
+		{ltObjectStart, ltObjectEnd},
+		{ltObjectStart, members, ltObjectEnd},
+	}, func(values ...*stackElement) JsonValue {
 		// TODO: incomplete
 		if len(values) == 2 {
 			return JsonValue{
@@ -88,10 +88,10 @@ var newGrammar = []GrammarRule{
 		}
 		return values[1].Value().(JsonValue)
 	}},
-	GrammarRule{Members, [][]ElementType{
-		{Member},
-		{Members, TTComma, Member},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{members, [][]elementType{
+		{member},
+		{members, ltComma, member},
+	}, func(values ...*stackElement) JsonValue {
 		size := len(values)
 		var members = map[string]JsonValue{}
 		member := values[size-1].Value().(JsonValue).Value.(map[string]JsonValue)
@@ -109,9 +109,9 @@ var newGrammar = []GrammarRule{
 			Value:     members,
 		}
 	}},
-	GrammarRule{Member, [][]ElementType{
-		{TTString, TTColon, Value},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{member, [][]elementType{
+		{ltString, ltColon, value},
+	}, func(values ...*stackElement) JsonValue {
 		keyName := values[0]
 		valueObj := values[2].Value().(JsonValue)
 
@@ -124,10 +124,10 @@ var newGrammar = []GrammarRule{
 			},
 		}
 	}},
-	GrammarRule{Array, [][]ElementType{
-		{TTArrayStart, TTArrayEnd},
-		{TTArrayStart, Elements, TTArrayEnd},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{array, [][]elementType{
+		{ltArrayStart, ltArrayEnd},
+		{ltArrayStart, elements, ltArrayEnd},
+	}, func(values ...*stackElement) JsonValue {
 		if len(values) == 2 {
 			return JsonValue{
 				ValueType: ARRAY,
@@ -136,10 +136,10 @@ var newGrammar = []GrammarRule{
 		}
 		return values[1].Value().(JsonValue)
 	}},
-	GrammarRule{Elements, [][]ElementType{
-		{Element},
-		{Elements, TTComma, Element},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{elements, [][]elementType{
+		{element},
+		{elements, ltComma, element},
+	}, func(values ...*stackElement) JsonValue {
 		size := len(values)
 
 		var elements []JsonValue
@@ -155,17 +155,17 @@ var newGrammar = []GrammarRule{
 			Value:     elements,
 		}
 	}},
-	GrammarRule{Element, [][]ElementType{
-		{Value},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{element, [][]elementType{
+		{value},
+	}, func(values ...*stackElement) JsonValue {
 		return values[0].Value().(JsonValue)
 	}},
-	GrammarRule{Number, [][]ElementType{
-		{Integer, Fraction, Exponent},
-		{Integer, Fraction},
-		{Integer, Exponent},
-		{Integer},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{number, [][]elementType{
+		{integer, fraction, exponent},
+		{integer, fraction},
+		{integer, exponent},
+		{integer},
+	}, func(values ...*stackElement) JsonValue {
 		size := len(values)
 		var integerValue = values[0].Value().(JsonValue).Value.(string)
 
@@ -197,10 +197,10 @@ var newGrammar = []GrammarRule{
 			ValueType: NUMBER,
 		}
 	}},
-	GrammarRule{Integer, [][]ElementType{
-		{TTDigits},
-		{TTSign, TTDigits},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{integer, [][]elementType{
+		{ltDigits},
+		{ltSign, ltDigits},
+	}, func(values ...*stackElement) JsonValue {
 		size := len(values)
 		digits := values[size-1]
 		var sign uint8 = '+'
@@ -213,9 +213,9 @@ var newGrammar = []GrammarRule{
 			ValueType: NUMBER,
 		}
 	}},
-	GrammarRule{Fraction, [][]ElementType{
-		{TTFractionSymbol, TTDigits},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{fraction, [][]elementType{
+		{ltFractionSymbol, ltDigits},
+	}, func(values ...*stackElement) JsonValue {
 		var fractionDigits = fmt.Sprintf(".%s", values[1].Value())
 
 		return JsonValue{
@@ -223,9 +223,9 @@ var newGrammar = []GrammarRule{
 			ValueType: NUMBER,
 		}
 	}},
-	GrammarRule{Exponent, [][]ElementType{
-		{TTExponent, Integer},
-	}, func(values ...*StackElement) JsonValue {
+	grammarRule{exponent, [][]elementType{
+		{ltExponent, integer},
+	}, func(values ...*stackElement) JsonValue {
 		var exponentExpr = fmt.Sprintf("e%s", values[1].Value().(JsonValue).Value.(string))
 
 		return JsonValue{
@@ -235,24 +235,24 @@ var newGrammar = []GrammarRule{
 	}},
 }
 
-type JsonElement struct {
+type jsonElement struct {
 	value           interface{}
-	jsonElementType ElementType
+	jsonElementType elementType
 }
 
-type StackElement struct {
-	value Token
-	rule  *JsonElement
+type stackElement struct {
+	value token
+	rule  *jsonElement
 }
 
-func (se StackElement) String() string {
+func (se stackElement) String() string {
 	if se.rule == nil {
 		return fmt.Sprintf("%s", se.value.tokenType)
 	}
 	return fmt.Sprintf("%s", se.rule.jsonElementType)
 }
 
-func (se StackElement) Value() interface{} {
+func (se stackElement) Value() interface{} {
 	if se.rule == nil {
 		return se.value.value
 	}

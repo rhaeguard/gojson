@@ -21,7 +21,7 @@ func TestUnmarshall(t *testing.T) {
 	doTest := func(refObj interface{}, input string, expected interface{}) {
 		name := fmt.Sprintf("unmarshalling-%s", input)
 		t.Run(name, func(t *testing.T) {
-			json, synErr := ParseJson(input)
+			json, synErr := Parse(input)
 			if synErr != nil {
 				t.Fatalf("%s", synErr.Error())
 			}

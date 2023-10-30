@@ -10,9 +10,9 @@ const (
 	fullMatch    prefixMatch = 2
 )
 
-// stackToToken - takes a slice of StackElement, and returns a slice of ElementType
-func stackToToken(stack []*StackElement) []ElementType {
-	var a []ElementType
+// stackToToken - takes a slice of stackElement, and returns a slice of ElementType
+func stackToToken(stack []*stackElement) []elementType {
+	var a []elementType
 	for _, e := range stack {
 		if e.rule == nil {
 			a = append(a, e.value.tokenType)
@@ -25,8 +25,8 @@ func stackToToken(stack []*StackElement) []ElementType {
 
 // checkIfAnyPrefixExists - checks if the combination of max top 2 stack elements
 // and the lookahead is a prefix of any known rule in the grammar
-func checkIfAnyPrefixExists(stack []*StackElement, lookahead Token) prefixMatch {
-	var checkedElements []ElementType
+func checkIfAnyPrefixExists(stack []*stackElement, lookahead token) prefixMatch {
+	var checkedElements []elementType
 
 	stackSize := len(stack)
 	if stackSize >= 2 {
@@ -52,7 +52,7 @@ type payload struct {
 	prodSize  int
 }
 
-func checkPrefix(candidates ...ElementType) (prefixMatch, bool) {
+func checkPrefix(candidates ...elementType) (prefixMatch, bool) {
 
 	// find all matches
 	// full or partial

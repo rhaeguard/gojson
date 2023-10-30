@@ -2,14 +2,17 @@ package gojson
 
 import "fmt"
 
-func ParseJson(input string) (JsonValue, *Error) {
+// Parse takes a json string as an input and returns a tuple of
+// parsed json in the form of JsonValue or
+// a possible error encountered while parsing the input
+func Parse(input string) (JsonValue, *Error) {
 	tokens, err := lex(input)
 
 	if err != nil {
 		return JsonValue{}, err
 	}
 
-	var stack []*StackElement
+	var stack []*stackElement
 
 	size := len(tokens)
 	reducePerformed := true
@@ -19,7 +22,7 @@ func ParseJson(input string) (JsonValue, *Error) {
 
 		if matchType := checkIfAnyPrefixExists(stack, lookahead); matchType != noMatch {
 			i++
-			stack = append(stack, &StackElement{value: lookahead})
+			stack = append(stack, &stackElement{value: lookahead})
 
 			if matchType == partialMatch {
 				continue
@@ -33,7 +36,7 @@ func ParseJson(input string) (JsonValue, *Error) {
 
 		if jsonElement, offset := action(stack); offset != 0 {
 			stack = stack[:len(stack)-offset]
-			stack = append(stack, &StackElement{
+			stack = append(stack, &stackElement{
 				rule: jsonElement,
 			})
 			reducePerformed = true
@@ -45,7 +48,7 @@ func ParseJson(input string) (JsonValue, *Error) {
 	for {
 		if jsonElement, offset := action(stack); offset != 0 {
 			stack = stack[:len(stack)-offset]
-			stack = append(stack, &StackElement{
+			stack = append(stack, &stackElement{
 				rule: jsonElement,
 			})
 		} else {

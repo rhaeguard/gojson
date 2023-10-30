@@ -67,7 +67,6 @@ var supportedKinds = map[reflect.Kind]JsonValueType{
 	reflect.Bool:   BOOL,
 	reflect.String: STRING,
 	reflect.Slice:  ARRAY,
-	reflect.Map:    OBJECT,
 	reflect.Struct: OBJECT,
 }
 
@@ -83,8 +82,22 @@ func isSupported(k reflect.Kind) (JsonValueType, bool) {
 	return "", false
 }
 
-func (jv *JsonValue) Unmarshal(obj any) error {
-	v := reflect.ValueOf(obj)
+// Unmarshal deserializes the input json string into the provided object.
+// Please keep in mind that obj needs to be a pointer
+// to the object we want to deserialize the json into
+func Unmarshal(inputJson string, ptr any) error {
+	json, err := Parse(inputJson)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(ptr)
+}
+
+// Unmarshal deserializes the parsed JsonValue into the provided object.
+// Please keep in mind that obj needs to be a pointer
+// to the object we want to deserialize the json into
+func (jv *JsonValue) Unmarshal(ptr any) error {
+	v := reflect.ValueOf(ptr)
 
 	if v.Kind() != reflect.Pointer {
 		return errors.New("expected: a pointer")

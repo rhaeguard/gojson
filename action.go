@@ -1,9 +1,9 @@
 package gojson
 
-func action(stack []*StackElement) (*JsonElement, int) {
+func action(stack []*stackElement) (*jsonElement, int) {
 	stackSize := len(stack)
 
-	var je *JsonElement
+	var je *jsonElement
 	var offsetSize int
 
 	for _, rule := range newGrammar {
@@ -17,7 +17,7 @@ func action(stack []*StackElement) (*JsonElement, int) {
 			actual := topNOfStack(stack, size)
 			matches := compare(expansion, actual)
 			if matches && size > offsetSize {
-				je = &JsonElement{
+				je = &jsonElement{
 					value:           rule.toJson(stack[len(stack)-size:]...),
 					jsonElementType: lhs,
 				}
@@ -29,9 +29,9 @@ func action(stack []*StackElement) (*JsonElement, int) {
 	return je, offsetSize
 }
 
-func topNOfStack(stack []*StackElement, count int) []ElementType {
+func topNOfStack(stack []*stackElement, count int) []elementType {
 	slice := stack[len(stack)-count:]
-	var elements []ElementType
+	var elements []elementType
 
 	for _, el := range slice {
 		var value = el.value.tokenType
@@ -44,7 +44,7 @@ func topNOfStack(stack []*StackElement, count int) []ElementType {
 	return elements
 }
 
-func compare(expansion, actual []ElementType) bool {
+func compare(expansion, actual []elementType) bool {
 	for i := 0; i < len(expansion); i++ {
 		if expansion[i] != actual[i] {
 			return false
