@@ -24,7 +24,7 @@ type WebConfig struct {
 }
 
 func main() {
-	inputJson := `{
+    inputJson := `{
               "Hostname": "localhost",
               "Port": 8282,
               "IsActive": true
@@ -55,5 +55,4 @@ func main() {
         fmt.Printf("%-v\n", wc.Port)
     }
 }
-
 ```
