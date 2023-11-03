@@ -6,7 +6,7 @@ func action(stack []*stackElement) (*jsonElement, int) {
 	var je *jsonElement
 	var offsetSize int
 
-	for _, rule := range newGrammar {
+	for _, rule := range grammar {
 		lhs := rule.lhs
 		expansions := rule.rhs
 		for _, expansion := range expansions {

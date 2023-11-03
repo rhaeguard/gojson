@@ -58,7 +58,7 @@ func checkPrefix(candidates ...elementType) (prefixMatch, bool) {
 	// full or partial
 	// only match or multiple matches
 	data := []payload{}
-	for _, rule := range newGrammar {
+	for _, rule := range grammar {
 		outcomes := rule.rhs
 		for _, production := range outcomes {
 			cSize := len(candidates)

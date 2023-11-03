@@ -43,7 +43,7 @@ type grammarRule struct {
 	toJson func(values ...*stackElement) JsonValue
 }
 
-var newGrammar = []grammarRule{
+var grammar = []grammarRule{
 	grammarRule{value, [][]elementType{
 		{object},
 		{array},
