@@ -4,29 +4,27 @@ func action(stack []*stackElement) (*jsonElement, int) {
 	stackSize := len(stack)
 
 	var je *jsonElement
-	var offsetSize int
+	var offset int
 
 	for _, rule := range grammar {
-		lhs := rule.lhs
-		expansions := rule.rhs
-		for _, expansion := range expansions {
-			size := len(expansion)
+		for _, production := range rule.rhs {
+			size := len(production)
 			if size > stackSize {
 				continue
 			}
 			actual := topNOfStack(stack, size)
-			matches := compare(expansion, actual)
-			if matches && size > offsetSize {
+			matches := compare(production, actual)
+			if matches && size > offset {
 				je = &jsonElement{
 					value:           rule.toJson(stack[len(stack)-size:]...),
-					jsonElementType: lhs,
+					jsonElementType: rule.lhs,
 				}
-				offsetSize = size
+				offset = size
 			}
 		}
 	}
 
-	return je, offsetSize
+	return je, offset
 }
 
 func topNOfStack(stack []*stackElement, count int) []elementType {

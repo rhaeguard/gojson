@@ -26,20 +26,20 @@ func stackToToken(stack []*stackElement) []elementType {
 // checkIfAnyPrefixExists - checks if the combination of max top 2 stack elements
 // and the lookahead is a prefix of any known rule in the grammar
 func checkIfAnyPrefixExists(stack []*stackElement, lookahead token) prefixMatch {
-	var checkedElements []elementType
+	var elems []elementType
 
 	stackSize := len(stack)
 	if stackSize >= 2 {
-		checkedElements = append(checkedElements, stackToToken(stack[stackSize-2:])...)
+		elems = append(elems, stackToToken(stack[stackSize-2:])...)
 	} else if stackSize == 1 {
-		checkedElements = append(checkedElements, stackToToken(stack[0:1])...)
+		elems = append(elems, stackToToken(stack[0:1])...)
 	}
 
-	checkedElements = append(checkedElements, lookahead.tokenType)
+	elems = append(elems, lookahead.tokenType)
 
-	size := len(checkedElements)
+	size := len(elems)
 	for i := size - 1; i >= 0; i-- {
-		if matchType, matches := checkPrefix(checkedElements[i:size]...); matches {
+		if matchType := checkPrefix(elems[i:size]...); matchType != noMatch {
 			return matchType
 		}
 	}
@@ -52,55 +52,50 @@ type payload struct {
 	prodSize  int
 }
 
-func checkPrefix(candidates ...elementType) (prefixMatch, bool) {
-
+func checkPrefix(candidates ...elementType) prefixMatch {
 	// find all matches
 	// full or partial
 	// only match or multiple matches
 	data := []payload{}
 	for _, rule := range grammar {
-		outcomes := rule.rhs
-		for _, production := range outcomes {
+		for _, production := range rule.rhs {
 			cSize := len(candidates)
 			rSize := len(production)
 
+			// if candidates size is longer than the rule
+			// then the rule is not relevant, move on
 			if cSize > rSize {
 				continue
 			}
 
-			continueOuter := false
+			didNotMatch := false
 			for i := 0; i < cSize; i++ {
 				if candidates[i] != production[i] {
-					continueOuter = true
+					didNotMatch = true
+					break
 				}
 			}
-			if continueOuter {
+			if didNotMatch {
 				continue
 			}
 
 			var p payload
 			if cSize == rSize {
-				p = payload{
-					matchType: fullMatch,
-					prodSize:  rSize,
-				}
+				p = payload{fullMatch, rSize}
 			} else {
-				p = payload{
-					matchType: partialMatch,
-					prodSize:  rSize,
-				}
+				p = payload{partialMatch, rSize}
 			}
 			data = append(data, p)
 		}
 	}
 
 	if len(data) == 0 {
-		return noMatch, false
+		return noMatch
 	}
 
 	sort.SliceStable(data, func(i, j int) bool {
 		return data[i].prodSize > data[j].prodSize
 	})
 
-	return data[0].matchType, true
+	return data[0].matchType
 }

@@ -64,7 +64,7 @@ var grammar = []grammarRule{
 				ValueType: NULL,
 			}
 		}
-		return values[0].Value().(JsonValue)
+		return values[0].asJsonValue()
 	}},
 	grammarRule{boolean, [][]elementType{
 		{ltBoolean},
@@ -86,18 +86,18 @@ var grammar = []grammarRule{
 				ValueType: OBJECT,
 			}
 		}
-		return values[1].Value().(JsonValue)
+		return values[1].asJsonValue()
 	}},
 	grammarRule{members, [][]elementType{
 		{member},
 		{members, ltComma, member},
 	}, func(values ...*stackElement) JsonValue {
 		size := len(values)
-		var members = map[string]JsonValue{}
-		member := values[size-1].Value().(JsonValue).Value.(map[string]JsonValue)
+		members := map[string]JsonValue{}
+		member := values[size-1].asJsonValue().Value.(map[string]JsonValue)
 
 		if size == 3 {
-			members = values[0].Value().(JsonValue).Value.(map[string]JsonValue)
+			members = values[0].asJsonValue().Value.(map[string]JsonValue)
 		}
 
 		for k, v := range member {
@@ -112,10 +112,8 @@ var grammar = []grammarRule{
 	grammarRule{member, [][]elementType{
 		{ltString, ltColon, value},
 	}, func(values ...*stackElement) JsonValue {
-		keyName := values[0]
-		valueObj := values[2].Value().(JsonValue)
-
-		key := fmt.Sprintf("%s", keyName.Value())
+		key := fmt.Sprintf("%s", values[0].Value())
+		valueObj := values[2].asJsonValue()
 
 		return JsonValue{
 			ValueType: OBJECT,
@@ -134,7 +132,7 @@ var grammar = []grammarRule{
 				Value:     []JsonValue{},
 			}
 		}
-		return values[1].Value().(JsonValue)
+		return values[1].asJsonValue()
 	}},
 	grammarRule{elements, [][]elementType{
 		{element},
@@ -144,10 +142,10 @@ var grammar = []grammarRule{
 
 		var elements []JsonValue
 		if size == 3 {
-			elements = (values[0].Value().(JsonValue)).Value.([]JsonValue)
+			elements = (values[0].asJsonValue()).Value.([]JsonValue)
 		}
 
-		element := values[size-1].Value().(JsonValue)
+		element := values[size-1].asJsonValue()
 		elements = append(elements, element)
 
 		return JsonValue{
@@ -158,7 +156,7 @@ var grammar = []grammarRule{
 	grammarRule{element, [][]elementType{
 		{value},
 	}, func(values ...*stackElement) JsonValue {
-		return values[0].Value().(JsonValue)
+		return values[0].asJsonValue()
 	}},
 	grammarRule{number, [][]elementType{
 		{integer, fraction, exponent},
@@ -167,20 +165,20 @@ var grammar = []grammarRule{
 		{integer},
 	}, func(values ...*stackElement) JsonValue {
 		size := len(values)
-		var integerValue = values[0].Value().(JsonValue).Value.(string)
+		var integerValue = values[0].asJsonValue().Value.(string)
 
 		var fraction string
-		if size >= 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), ".") {
-			fraction = values[1].Value().(JsonValue).Value.(string)
+		if size >= 2 && strings.HasPrefix(values[1].asJsonValue().Value.(string), ".") {
+			fraction = values[1].asJsonValue().Value.(string)
 		} else {
 			fraction = ""
 		}
 
 		var exponent string
-		if size == 2 && strings.HasPrefix(values[1].Value().(JsonValue).Value.(string), "e") {
-			exponent = values[1].Value().(JsonValue).Value.(string)
-		} else if size == 3 && strings.HasPrefix(values[2].Value().(JsonValue).Value.(string), "e") {
-			exponent = values[2].Value().(JsonValue).Value.(string)
+		if size == 2 && strings.HasPrefix(values[1].asJsonValue().Value.(string), "e") {
+			exponent = values[1].asJsonValue().Value.(string)
+		} else if size == 3 && strings.HasPrefix(values[2].asJsonValue().Value.(string), "e") {
+			exponent = values[2].asJsonValue().Value.(string)
 		} else {
 			exponent = ""
 		}
@@ -226,7 +224,7 @@ var grammar = []grammarRule{
 	grammarRule{exponent, [][]elementType{
 		{ltExponent, integer},
 	}, func(values ...*stackElement) JsonValue {
-		var exponentExpr = fmt.Sprintf("e%s", values[1].Value().(JsonValue).Value.(string))
+		var exponentExpr = fmt.Sprintf("e%s", values[1].asJsonValue().Value.(string))
 
 		return JsonValue{
 			Value:     exponentExpr,
@@ -257,4 +255,8 @@ func (se stackElement) Value() interface{} {
 		return se.value.value
 	}
 	return se.rule.value
+}
+
+func (se stackElement) asJsonValue() JsonValue {
+	return se.rule.value.(JsonValue)
 }

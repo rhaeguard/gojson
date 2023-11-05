@@ -28,9 +28,7 @@ func Parse(input string) (JsonValue, *Error) {
 				continue
 			}
 			// full match means that there's something we can reduce now
-		}
-
-		if !reducePerformed {
+		} else if !reducePerformed {
 			return JsonValue{}, newError(-1, fmt.Sprintf("unexpected token: %s", lookahead.tokenType))
 		}
 
