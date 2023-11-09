@@ -125,7 +125,7 @@ func (jv *JsonValue) setValue(kind reflect.Kind, v reflect.Value) error {
 	} else if converter, ok := numbers[kind]; ok {
 		v.Set(reflect.ValueOf(converter(jv.Value.(float64))))
 	} else if kind == reflect.Slice {
-		if err := jv.handleSlice(v, jt, ok); err != nil {
+		if err := jv.handleSlice(v, jt); err != nil {
 			return err
 		}
 	} else if kind == reflect.Struct {
@@ -142,7 +142,7 @@ func (jv *JsonValue) setValue(kind reflect.Kind, v reflect.Value) error {
 	return nil
 }
 
-func (jv *JsonValue) handleSlice(v reflect.Value, jt JsonValueType, ok bool) error {
+func (jv *JsonValue) handleSlice(v reflect.Value, jt JsonValueType) error {
 	dataType := v.Type().Elem().Kind()
 
 	values := jv.Value.([]JsonValue)
@@ -154,7 +154,7 @@ func (jv *JsonValue) handleSlice(v reflect.Value, jt JsonValueType, ok bool) err
 		}
 	}
 
-	if jt, ok = isSupported(dataType); !ok || jt != jsonType {
+	if jt, ok := isSupported(dataType); !ok || jt != jsonType {
 		return errors.New("type mismatch for array")
 	}
 
