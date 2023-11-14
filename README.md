@@ -4,6 +4,8 @@
 
 A JSON parser written in Go using Shift-Reduce Parsing technique without any parsing table.
 
+read the [article](https://rhaeguard.github.io/posts/json-parsing-shift-reduce/)
+
 ### to add the dependency:
 
 ```shell
